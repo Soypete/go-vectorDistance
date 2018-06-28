@@ -5,7 +5,7 @@ Using the data provided in (https://git.nav.com/mpeterson/go-vectorDistance/blob
 This repo used the library (https://github.com/xrash/smetrics) to calculate vector distances.
 
 ## Configuration
- ``` go get https://github.com/xrash/smetrics```
+ ` go get https://github.com/xrash/smetrics`
 
 
-  ```go run main.go```
+  `go run main.go`
