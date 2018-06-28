@@ -43,6 +43,18 @@ type weighting struct {
 	weight int
 }
 
+//getVectorDistance uses Jaro distance Jaro-Winkler distance and Levenstein distance calculated
+// by the WagnerFisher method. They are averaged to give the most accurate vector distance
+func getVectorDistance(searchVal, returnVal string) float64 {
+	jaro := smetrics.Jaro(searchVal, returnVal)
+	jaroWinkler := smetrics.JaroWinkler(searchVal, returnVal, 0.7, 4)
+	wagnerFisher := smetrics.WagnerFischer(searchVal, returnVal, 1, 2, 4)
+
+	wagnerFisher = (100 - wagnerFisher) / 100
+	score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
+	return score
+}
+
 func getWeightedAverage(info []weighting) float64 {
 	var sumtop float64
 	var sumbottom float64
@@ -51,15 +63,15 @@ func getWeightedAverage(info []weighting) float64 {
 		sumtop += (sw.score * float64(sw.weight))
 		sumbottom += float64(sw.weight)
 	}
-
+	// formula is ∑w_n*x_n/∑w_n where w is the weight and x is the score
 	return sumtop / sumbottom
 }
 
 // GetDandbMatchScore returns a score representing the likelyhood that a business already exists.
 func GetDandbMatchScore(sName, rName, sCity, rCity, sState, rState, sZip, rZip, sPhone, rPhone, sBin, rBin, sDuns, rDuns, ad1, ad2 string) float64 {
 	var weights []weighting
-	address1 := ad1
-	address2 := ad2
+	sAddress := ad1
+	rAddress := ad2
 
 	fmt.Printf(" search name: %s found name: %s sZip: %s rZIp: %s sBin: %s rBin: %s \n", sName, rName, sZip, rZip, sBin, rBin)
 
@@ -82,66 +94,43 @@ func GetDandbMatchScore(sName, rName, sCity, rCity, sState, rState, sZip, rZip, 
 	}
 
 	// simple step to eliminate typing error
-	address1 = strings.ToLower(address1)
-	address2 = strings.ToLower(address2)
+	sAddress = strings.ToLower(sAddress)
+	rAddress = strings.ToLower(rAddress)
 
-	address1Slice := strings.SplitAfter(address1, "")
-	for i := range address1Slice {
-		if wordReplacements[address1Slice[i]] != "" {
-			address1Slice[i] = fmt.Sprintf("%s ", wordReplacements[address1Slice[i]])
+	sAddressSlice := strings.SplitAfter(sAddress, "")
+	for i := range sAddressSlice {
+		if wordReplacements[sAddressSlice[i]] != "" {
+			sAddressSlice[i] = fmt.Sprintf("%s ", wordReplacements[sAddressSlice[i]])
 		}
 	}
 
-	address2Slice := strings.SplitAfter(address2, "")
-	for i := range address2Slice {
-		if wordReplacements[address2Slice[i]] != "" {
-			address2Slice[i] = fmt.Sprintf("%s ", wordReplacements[address2Slice[i]])
+	rAddressSlice := strings.SplitAfter(rAddress, "")
+	for i := range rAddressSlice {
+		if wordReplacements[rAddressSlice[i]] != "" {
+			rAddressSlice[i] = fmt.Sprintf("%s ", wordReplacements[rAddressSlice[i]])
 		}
 	}
 
-	address1 = strings.Join(address1Slice, "")
-	address2 = strings.Join(address2Slice, "")
+	sAddress = strings.Join(sAddressSlice, "")
+	rAddress = strings.Join(rAddressSlice, "")
 
-	if ad1 != "" {
-		jaro := smetrics.Jaro(address1, address2)
-		jaroWinkler := smetrics.JaroWinkler(address1, address2, 0.7, 4)
-		fmt.Printf("JaroW: %v \n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(address1, address2, 1, 2, 4)
-
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
+	if sAddress != "" {
+		score := getVectorDistance(sAddress, rAddress)
 		weights = append(weights, weighting{score: score, weight: 1})
 	}
-	if sName != "" {
-		jaro := smetrics.Jaro(sName, rName)
-		jaroWinkler := smetrics.JaroWinkler(sName, rName, 0.7, 4)
-		fmt.Printf("JaroW: %v\n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(sName, rName, 1, 2, 4)
 
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
+	if sName != "" {
+		score := getVectorDistance(sName, rName)
 		weights = append(weights, weighting{score: score, weight: 1})
 	}
 
 	if sCity != "" {
-		jaro := smetrics.Jaro(sCity, rCity)
-		jaroWinkler := smetrics.JaroWinkler(sCity, rCity, 0.7, 4)
-		fmt.Printf("JaroW: %v \n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(sCity, rCity, 1, 2, 4)
-
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
+		score := getVectorDistance(sCity, rCity)
 		weights = append(weights, weighting{score: score, weight: 1})
 	}
 
 	if sState != "" {
-		jaro := smetrics.Jaro(sState, rState)
-		jaroWinkler := smetrics.JaroWinkler(sState, rState, 0.7, 4)
-		fmt.Printf("JaroW: %v\n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(sState, rState, 1, 2, 4)
-
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
+		score := getVectorDistance(sState, rState)
 		weights = append(weights, weighting{score: score, weight: 1})
 	}
 
@@ -150,55 +139,16 @@ func GetDandbMatchScore(sName, rName, sCity, rCity, sState, rState, sZip, rZip, 
 			score := float64(1)
 			weights = append(weights, weighting{score: score, weight: 2})
 		} else {
-			jaro := smetrics.Jaro(sZip, rZip)
-			jaroWinkler := smetrics.JaroWinkler(sZip, rZip, 0.7, 4)
-			fmt.Printf("JaroW: %v\n", jaroWinkler)
-			wagnerFisher := smetrics.WagnerFischer(sZip, rZip, 1, 2, 4)
-
-			wagnerFisher = (100 - wagnerFisher) / 100
-			score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
+			score := getVectorDistance(sZip, rZip)
 			weights = append(weights, weighting{score: score, weight: 2})
 		}
-	}
-
-	if sPhone != "" {
-		jaro := smetrics.Jaro(sPhone, rPhone)
-		jaroWinkler := smetrics.JaroWinkler(sPhone, rPhone, 0.7, 4)
-		fmt.Printf("JaroW: %v\n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(sPhone, rPhone, 1, 2, 4)
-
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
-		weights = append(weights, weighting{score: score, weight: 1})
-	}
-
-	if sBin != "" {
-		jaro := smetrics.Jaro(sBin, rBin)
-		jaroWinkler := smetrics.JaroWinkler(sBin, rBin, 0.7, 4)
-		fmt.Printf("JaroW: %v\n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(sBin, rBin, 1, 2, 4)
-
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
-		weights = append(weights, weighting{score: score, weight: 10})
-	}
-
-	if sDuns != "" {
-		jaro := smetrics.Jaro(sDuns, rDuns)
-		jaroWinkler := smetrics.JaroWinkler(address1, address2, 0.7, 4)
-		fmt.Printf("JaroW: %v\n", jaroWinkler)
-		wagnerFisher := smetrics.WagnerFischer(address1, address2, 1, 2, 4)
-
-		wagnerFisher = (100 - wagnerFisher) / 100
-		score := (jaro + jaroWinkler + float64(wagnerFisher)) / 3
-		weights = append(weights, weighting{score: score, weight: 10})
 	}
 
 	return getWeightedAverage(weights)
 }
 
 func main() {
-	in, err := os.Open("/Users/mpeterson/code/pair_programming/distance/20180622/20180622_results_searches.csv")
+	in, err := os.Open("20180622/20180622_results_searches.csv")
 
 	if err != nil {
 		log.Fatal(err)
