@@ -23,7 +23,7 @@ go run main.go
 
 ## Go Modules
 ```bash
-export GO111MODULES=on
+export GO111MODULES="on"
 go mod init
 go get https://github.com/xrash/smetrics
 go build ./...
