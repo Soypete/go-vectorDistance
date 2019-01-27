@@ -9,3 +9,23 @@ This repo used the library (https://github.com/xrash/smetrics) to calculate vect
 
 
   `go run main.go`
+
+## Dependency Example
+
+## Dep
+
+```bash
+brew install dep
+dep init
+dep ensure
+go run main.go
+```
+
+## Go Modules
+```bash
+export GO111MODULES=on
+go mod init
+go get https://github.com/xrash/smetrics
+go build ./...
+./go-vectorDistance
+```

@@ -186,8 +186,8 @@ func main() {
 			ResultStreet: line[22],
 			SearchStreet: line[23],
 		}
-		// fmt.Println(data.SearchStreet)
-		// fmt.Println(data.ResultStreet)
+		fmt.Println(data.SearchStreet)
+		fmt.Println(data.ResultStreet)
 		time.Sleep(500 * time.Millisecond)
 		score := GetDandbMatchScore(data.SearchName, data.ResultName, data.SearchCity, data.ResultCity, data.SearchState, data.ResultState, data.SearchZip, data.ResultZip, data.SearchPhone, data.ResultPhone, data.SearchBin, data.ResultBin, data.SearchDuns, data.ResultDuns, data.SearchStreet, data.ResultStreet)
 		fmt.Println(score)
